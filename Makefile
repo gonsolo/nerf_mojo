@@ -1,7 +1,7 @@
 all: python
 mojo:
-	mojo bla.mojo
+	mojo nerf.mojo
 python:
-	python bla.py
+	python nerf.py
 edit:
-	vi bla.py
+	vi nerf.py
