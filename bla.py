@@ -620,7 +620,7 @@ one_image_per_step = True   # One image per gradient step (disables batching)
 chunksize = 2**14           # Modify as needed to fit in GPU memory
 center_crop = True          # Crop the center of image (one_image_per_)
 center_crop_iters = 50      # Stop cropping center after this many epochs
-display_rate = 25          # Display test output every X epochs
+display_rate = 1025          # Display test output every X epochs
 
 # Early Stopping
 warmup_iters = 100          # Number of iterations during warmup phase
