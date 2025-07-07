@@ -41,6 +41,9 @@ def load_data(path: String) -> (List[List[List[List[Float64]]]], List[List[List[
 def main():
     try:
         context = DeviceContext()
+        var plt = Python.import_module("matplotlib.pyplot")
+        var np = Python.import_module("numpy")
+
         var result = load_data("tiny_nerf_data.npz")
         var images = result[0]
         var poses = result[1]
@@ -71,6 +74,29 @@ def main():
             dirs.append(dir_vec)
         print("First origin:", origins[0][0], origins[0][1], origins[0][2])
         print("First dir sum:", dirs[0][0], dirs[0][1], dirs[0][2])
+
+        # Convert Mojo Lists to Python lists manually
+        var py_origins = Python.evaluate("[]")
+        for origin in origins:
+            var py_origin = Python.evaluate("[]")
+            for coord in origin:
+                py_origin.append(coord)
+            py_origins.append(py_origin)
+
+        var py_dirs = Python.evaluate("[]")
+        for dir_vec in dirs:
+            var py_dir = Python.evaluate("[]")
+            for coord in dir_vec:
+                py_dir.append(coord)
+            py_dirs.append(py_dir)
+
+        # Convert to numpy arrays
+        var origins_np = np.array(py_origins)
+        print(origins_np.dtype)
+        print(origins_np.shape)
+        print(origins_np[0])
+
+        var dirs_np = np.array(py_dirs)
 
         _ = context # TODO: Remove this when context is used
     except:

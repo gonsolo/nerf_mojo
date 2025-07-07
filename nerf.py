@@ -45,7 +45,6 @@ origins = poses[:, :3, -1]
 
 print("First origin:", origins[0][0], origins[0][1], origins[0][2])
 print("First dir sum:", dirs[0])
-sys.exit()
 
 ax = plt.figure(figsize=(12, 8)).add_subplot(projection='3d')
 _ = ax.quiver(
@@ -58,7 +57,8 @@ _ = ax.quiver(
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('z')
-#plt.show()
+plt.show()
+sys.exit()
 
 def get_rays(
   height: int,
