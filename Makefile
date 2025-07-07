@@ -5,4 +5,4 @@ mojo:
 python:
 	python nerf.py
 edit:
-	vi nerf.py
+	vi -O nerf.mojo nerf.py
