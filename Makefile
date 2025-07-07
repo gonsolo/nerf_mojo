@@ -1,4 +1,5 @@
-all: python
+#all: python
+all: mojo
 mojo:
 	mojo nerf.mojo
 python:
