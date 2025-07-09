@@ -7,7 +7,7 @@ from matplotlib.backend_bases import MouseButton
 import sys
 import math
 
-from nerf import NeRF, PositionalEncoder
+from nerf import NeRF, PositionalEncoder, get_rays, sample_stratified, cumprod_exclusive
 
 device = torch.device('cuda')
 d_input = 3
@@ -32,11 +32,6 @@ up = M[1, :3]
 forward = M[2, :3]
 position = M[:3, 3]
 
-print("Right:", right)
-print("Up:", up)
-print("Forward:", forward)
-print("Position:", position)
-
 def build_matrix_from_basis_and_position(right, up, forward, position):
     m = np.eye(4, dtype=np.float32)
     m[0, :3] = right
@@ -46,15 +41,10 @@ def build_matrix_from_basis_and_position(right, up, forward, position):
     return m
 
 new_mat = build_matrix_from_basis_and_position(right, up, forward, position)
-print(new_mat)
 
 radius = np.linalg.norm(position)
 theta = np.arccos(position[2] / radius)  # angle from Z+
 phi = np.arctan2(position[1], position[0])   # azimuth in XY plane
-
-print("radius:", radius)
-print("theta (rad):", theta)
-print("phi (rad):", phi)
 
 def spherical_to_cartesian_zup(radius, theta, phi):
     x = radius * np.sin(theta) * np.cos(phi)
@@ -120,19 +110,12 @@ phi = -2.3809996
 
 view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
 np.set_printoptions(precision=7, suppress=True)
-print(view_matrix)
 
-#sys.exit()
-
-testpose0 = torch.tensor(view_matrix).to(device)
-print(testpose0)
-testpose1 = torch.tensor([[ 6.8935126e-01, 5.3373039e-01, -4.8982298e-01, -1.9745398e+00],
-            [-7.2442728e-01, 5.0788772e-01, -4.6610624e-01, -1.8789345e+00],
-            [ 1.4901163e-08, 6.7615211e-01,  7.3676193e-01,  2.9699826e+00],
-            [ 0.0000000e+00, 0.0000000e+00,  0.0000000e+00,  1.0000000e+00]]).to(device)
-print(testpose1)
-testpose = testpose0
-#sys.exit()
+testpose = torch.tensor(view_matrix).to(device)
+#testpose = torch.tensor([[ 6.8935126e-01, 5.3373039e-01, -4.8982298e-01, -1.9745398e+00],
+#            [-7.2442728e-01, 5.0788772e-01, -4.6610624e-01, -1.8789345e+00],
+#            [ 1.4901163e-08, 6.7615211e-01,  7.3676193e-01,  2.9699826e+00],
+#            [ 0.0000000e+00, 0.0000000e+00,  0.0000000e+00,  1.0000000e+00]]).to(device)
 
 near, far = 2., 6.
 n_samples = 8
@@ -148,34 +131,6 @@ kwargs_sample_hierarchical = {
 }
 n_samples_hierarchical = 64
 chunksize = 2**14
-
-def get_rays(
-  height: int,
-  width: int,
-  focal_length: float,
-  c2w: torch.Tensor
-) -> tuple[torch.Tensor, torch.Tensor]:
-  r"""
-  Find origin and direction of rays through every pixel and camera origin.
-  """
-
-  # Apply pinhole camera model to gather directions at each pixel
-  i, j = torch.meshgrid(
-      torch.arange(width, dtype=torch.float32).to(c2w),
-      torch.arange(height, dtype=torch.float32).to(c2w),
-      indexing='ij')
-  i, j = i.transpose(-1, -2), j.transpose(-1, -2)
-  directions = torch.stack([(i - width * .5) / focal_length,
-                            -(j - height * .5) / focal_length,
-                            -torch.ones_like(i)
-                           ], dim=-1)
-
-  # Apply camera pose to directions
-  rays_d = torch.sum(directions[..., None, :] * c2w[:3, :3], dim=-1)
-
-  # Origin is same for all directions (the optical center)
-  rays_o = c2w[:3, -1].expand(rays_d.shape)
-  return rays_o, rays_d
 
 def get_chunks(
   inputs: torch.Tensor,
@@ -215,31 +170,6 @@ def prepare_viewdirs_chunks(
   viewdirs = encoding_function(viewdirs)
   viewdirs = get_chunks(viewdirs, chunksize=chunksize)
   return viewdirs
-
-def cumprod_exclusive(
-  tensor: torch.Tensor
-) -> torch.Tensor:
-  r"""
-  (Courtesy of https://github.com/krrish94/nerf-pytorch)
-
-  Mimick functionality of tf.math.cumprod(..., exclusive=True), as it isn't available in PyTorch.
-
-  Args:
-  tensor (torch.Tensor): Tensor whose cumprod (cumulative product, see `torch.cumprod`) along dim=-1
-    is to be computed.
-  Returns:
-  cumprod (torch.Tensor): cumprod of Tensor along dim=-1, mimiciking the functionality of
-    tf.math.cumprod(..., exclusive=True) (see `tf.math.cumprod` for details).
-  """
-
-  # Compute regular cumprod first (this is equivalent to `tf.math.cumprod(..., exclusive=False)`).
-  cumprod = torch.cumprod(tensor, -1)
-  # "Roll" the elements along dimension 'dim' by 1 element.
-  cumprod = torch.roll(cumprod, 1, -1)
-  # Replace the first element by "1" as this is what tf.cumprod(..., exclusive=True) does.
-  cumprod[..., 0] = 1.
-
-  return cumprod
 
 
 def raw2outputs(
@@ -463,42 +393,6 @@ def nerf_forward(
   outputs['acc_map'] = acc_map
   outputs['weights'] = weights
   return outputs
-
-def sample_stratified(
-  rays_o: torch.Tensor,
-  rays_d: torch.Tensor,
-  near: float,
-  far: float,
-  n_samples: int,
-  perturb: Optional[bool] = True,
-  inverse_depth: bool = False
-) -> tuple[torch.Tensor, torch.Tensor]:
-  r"""
-  Sample along ray from regularly-spaced bins.
-  """
-
-  # Grab samples for space integration along ray
-  t_vals = torch.linspace(0., 1., n_samples, device=rays_o.device)
-  if not inverse_depth:
-    # Sample linearly between `near` and `far`
-    z_vals = near * (1.-t_vals) + far * (t_vals)
-  else:
-    # Sample linearly in inverse depth (disparity)
-    z_vals = 1./(1./near * (1.-t_vals) + 1./far * (t_vals))
-
-  # Draw uniform samples from bins along ray
-  if perturb:
-    mids = .5 * (z_vals[1:] + z_vals[:-1])
-    upper = torch.concat([mids, z_vals[-1:]], dim=-1)
-    lower = torch.concat([z_vals[:1], mids], dim=-1)
-    t_rand = torch.rand([n_samples], device=z_vals.device)
-    z_vals = lower + (upper - lower) * t_rand
-  z_vals = z_vals.expand(list(rays_o.shape[:-1]) + [n_samples])
-
-  # Apply scale from `rays_d` and offset from `rays_o` to samples
-  # pts: (width, height, n_samples, 3)
-  pts = rays_o[..., None, :] + rays_d[..., None, :] * z_vals[..., :, None]
-  return pts, z_vals
 
 encoder = PositionalEncoder(d_input, n_freqs, log_space=log_space)
 encode = lambda x: encoder(x)
