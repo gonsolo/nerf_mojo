@@ -20,60 +20,11 @@ use_viewdirs = True
 n_freqs_views = 4
 focal = 138.88887889922103
 
-M = np.array([
-    [ 6.8935126e-01, 5.3373039e-01, -4.8982298e-01, -1.9745398e+00],
-    [-7.2442728e-01, 5.0788772e-01, -4.6610624e-01, -1.8789345e+00],
-    [ 1.4901163e-08, 6.7615211e-01,  7.3676193e-01,  2.9699826e+00],
-    [ 0.0000000e+00, 0.0000000e+00,  0.0000000e+00,  1.0000000e+00]
-], dtype=np.float32)
-
-right = M[0, :3]
-up = M[1, :3]
-forward = M[2, :3]
-position = M[:3, 3]
-
-def build_matrix_from_basis_and_position(right, up, forward, position):
-    m = np.eye(4, dtype=np.float32)
-    m[0, :3] = right
-    m[1, :3] = up
-    m[2, :3] = forward
-    m[:3, 3] = position
-    return m
-
-new_mat = build_matrix_from_basis_and_position(right, up, forward, position)
-
-radius = np.linalg.norm(position)
-theta = np.arccos(position[2] / radius)  # angle from Z+
-phi = np.arctan2(position[1], position[0])   # azimuth in XY plane
-
 def spherical_to_cartesian_zup(radius, theta, phi):
     x = radius * np.sin(theta) * np.cos(phi)
     y = radius * np.sin(theta) * np.sin(phi)
     z = radius * np.cos(theta)
     return np.array([x, y, z], dtype=np.float32)
-
-def build_look_at_zup(position, target=np.array([0, 0, 0], dtype=np.float32), up_guess=np.array([0, 0, 1], dtype=np.float32)):
-    forward = position - target
-    forward /= np.linalg.norm(forward)
-
-    right = np.cross(up_guess, forward)
-    if np.linalg.norm(right) < 1e-5:
-        # handle singularity
-        up_guess = np.array([0, 1, 0], dtype=np.float32)
-        right = np.cross(up_guess, forward)
-
-    right /= np.linalg.norm(right)
-    up = np.cross(forward, right)
-
-    # Build in **row-major form**, matching your original matrix
-    m = np.eye(4, dtype=np.float32)
-    m[0, :3] = right
-    m[1, :3] = up
-    m[2, :3] = forward
-    m[0, 3] = position[0]
-    m[1, 3] = position[1]
-    m[2, 3] = position[2]
-    return m.T
 
 def spherical_camera_matrix_nerf_style(radius, theta, phi):
     # Camera position in Z-up coordinates
