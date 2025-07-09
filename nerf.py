@@ -43,8 +43,10 @@ print(testpose)
 dirs = np.stack([np.sum([0, 0, -1] * pose[:3, :3], axis=-1) for pose in poses])
 origins = poses[:, :3, -1]
 
+print("First pose:", poses[0])
 print("First origin:", origins[0][0], origins[0][1], origins[0][2])
 print("First dir sum:", dirs[0])
+#sys.exit()
 
 ax = plt.figure(figsize=(12, 8)).add_subplot(projection='3d')
 _ = ax.quiver(
