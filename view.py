@@ -1,12 +1,17 @@
-import sys
 import math
+import sys
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import max.mojo.importer
 from torch import nn
 from typing import Callable, List, Optional
 from matplotlib.backend_bases import MouseButton
 from nerf import *
+
+sys.path.insert(0, "")
+import mojo_module
+print(mojo_module.factorial(5))
 
 device = torch.device('cuda')
 d_input = 3
@@ -151,4 +156,5 @@ def on_move(event):
 fig.canvas.mpl_connect('motion_notify_event', on_move)
 
 plt.show()
+
 
