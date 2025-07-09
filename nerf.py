@@ -58,7 +58,7 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('z')
 plt.show()
-sys.exit()
+#sys.exit()
 
 def get_rays(
   height: int,
@@ -625,7 +625,7 @@ one_image_per_step = True   # One image per gradient step (disables batching)
 chunksize = 2**14           # Modify as needed to fit in GPU memory
 center_crop = True          # Crop the center of image (one_image_per_)
 center_crop_iters = 50      # Stop cropping center after this many epochs
-display_rate = 1025          # Display test output every X epochs
+display_rate = 25           # Display test output every X epochs
 
 # Early Stopping
 warmup_iters = 100          # Number of iterations during warmup phase
@@ -856,7 +856,7 @@ def train():
         z_sample_hierarch = None
       _ = plot_samples(z_sample_strat, z_sample_hierarch, ax=ax[3])
       ax[3].margins(0)
-      plt.show()
+      #plt.show()
 
     # Check PSNR for issues and stop if any are found.
     if i == warmup_iters - 1:
