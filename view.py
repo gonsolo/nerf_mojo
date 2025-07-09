@@ -1,12 +1,11 @@
-import torch
-from torch import nn
-from typing import Callable, List, Optional
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.backend_bases import MouseButton
 import sys
 import math
-
+import torch
+import matplotlib.pyplot as plt
+import numpy as np
+from torch import nn
+from typing import Callable, List, Optional
+from matplotlib.backend_bases import MouseButton
 from nerf import *
 
 device = torch.device('cuda')
@@ -19,6 +18,32 @@ skip = []
 use_viewdirs = True
 n_freqs_views = 4
 focal = 138.88887889922103
+height, width = 100, 100
+stored_x = 0
+stored_y = 0
+t = 0.0
+# Example parameters (radius, theta, phi):
+radius = 4.031129
+theta = 0.7425274
+phi = -2.3809996
+#testpose = torch.tensor([[ 6.8935126e-01, 5.3373039e-01, -4.8982298e-01, -1.9745398e+00],
+#            [-7.2442728e-01, 5.0788772e-01, -4.6610624e-01, -1.8789345e+00],
+#            [ 1.4901163e-08, 6.7615211e-01,  7.3676193e-01,  2.9699826e+00],
+#            [ 0.0000000e+00, 0.0000000e+00,  0.0000000e+00,  1.0000000e+00]]).to(device)
+near, far = 2., 6.
+n_samples = 8
+perturb = True
+inverse_depth = False
+kwargs_sample_stratified = {
+    'n_samples': n_samples,
+    'perturb': perturb,
+    'inverse_depth': inverse_depth
+}
+kwargs_sample_hierarchical = {
+    'perturb': perturb
+}
+n_samples_hierarchical = 64
+chunksize = 2**14
 
 def spherical_to_cartesian_zup(radius, theta, phi):
     x = radius * np.sin(theta) * np.cos(phi)
@@ -54,35 +79,24 @@ def spherical_camera_matrix_nerf_style(radius, theta, phi):
 
     return m.T
 
-# Example parameters (radius, theta, phi):
-radius = 4.031129
-theta = 0.7425274
-phi = -2.3809996
+def compute_image(radiu, theta, phi):
+    view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
+    testpose = torch.tensor(view_matrix).to(device)
+    rays_o, rays_d = get_rays(height, width, focal, testpose)
+    rays_o = rays_o.reshape([-1, 3])
+    rays_d = rays_d.reshape([-1, 3])
+    outputs = nerf_forward(rays_o, rays_d,
+                           near, far, encode, model,
+                           kwargs_sample_stratified=kwargs_sample_stratified,
+                           n_samples_hierarchical=n_samples_hierarchical,
+                           kwargs_sample_hierarchical=kwargs_sample_hierarchical,
+                           fine_model=fine_model,
+                           viewdirs_encoding_fn=encode_viewdirs,
+                           chunksize=chunksize)
 
-view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
-np.set_printoptions(precision=7, suppress=True)
-
-testpose = torch.tensor(view_matrix).to(device)
-#testpose = torch.tensor([[ 6.8935126e-01, 5.3373039e-01, -4.8982298e-01, -1.9745398e+00],
-#            [-7.2442728e-01, 5.0788772e-01, -4.6610624e-01, -1.8789345e+00],
-#            [ 1.4901163e-08, 6.7615211e-01,  7.3676193e-01,  2.9699826e+00],
-#            [ 0.0000000e+00, 0.0000000e+00,  0.0000000e+00,  1.0000000e+00]]).to(device)
-
-near, far = 2., 6.
-n_samples = 8
-perturb = True
-inverse_depth = False
-kwargs_sample_stratified = {
-    'n_samples': n_samples,
-    'perturb': perturb,
-    'inverse_depth': inverse_depth
-}
-kwargs_sample_hierarchical = {
-    'perturb': perturb
-}
-n_samples_hierarchical = 64
-chunksize = 2**14
-
+    rgb_predicted = outputs['rgb_map']
+    image = rgb_predicted.reshape([height, width, 3]).detach().cpu().numpy()
+    return image
 
 encoder = PositionalEncoder(d_input, n_freqs, log_space=log_space)
 encode = lambda x: encoder(x)
@@ -116,29 +130,10 @@ fine_model.load_state_dict(fine_state_dict)
 fine_model.to(device)
 
 model.eval()
-height, width = 100, 100
 
-rays_o, rays_d = get_rays(height, width, focal, testpose)
-rays_o = rays_o.reshape([-1, 3])
-rays_d = rays_d.reshape([-1, 3])
-outputs = nerf_forward(rays_o, rays_d,
-                       near, far, encode, model,
-                       kwargs_sample_stratified=kwargs_sample_stratified,
-                       n_samples_hierarchical=n_samples_hierarchical,
-                       kwargs_sample_hierarchical=kwargs_sample_hierarchical,
-                       fine_model=fine_model,
-                       viewdirs_encoding_fn=encode_viewdirs,
-                       chunksize=chunksize)
-
-rgb_predicted = outputs['rgb_map']
-image = rgb_predicted.reshape([height, width, 3]).detach().cpu().numpy()
-
+image = compute_image(radius, theta, phi)
 fig, ax = plt.subplots()
 im = plt.imshow(image)
-
-stored_x = 0
-stored_y = 0
-t = 0.0
 
 def on_move(event):
     if not event.inaxes:
@@ -149,24 +144,7 @@ def on_move(event):
     dx = float(event.x - stored_x) / 100.0
     stored_x = event.x
     phi -= dx
-
-    view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
-    testpose = torch.tensor(view_matrix).to(device)
-    rays_o, rays_d = get_rays(height, width, focal, testpose)
-    rays_o = rays_o.reshape([-1, 3])
-    rays_d = rays_d.reshape([-1, 3])
-    outputs = nerf_forward(rays_o, rays_d,
-                           near, far, encode, model,
-                           kwargs_sample_stratified=kwargs_sample_stratified,
-                           n_samples_hierarchical=n_samples_hierarchical,
-                           kwargs_sample_hierarchical=kwargs_sample_hierarchical,
-                           fine_model=fine_model,
-                           viewdirs_encoding_fn=encode_viewdirs,
-                           chunksize=chunksize)
-
-    rgb_predicted = outputs['rgb_map']
-    image = rgb_predicted.reshape([height, width, 3]).detach().cpu().numpy()
-
+    image = compute_image(radius, theta, phi)
     im.set_data(image)
     fig.canvas.draw_idle()
 
