@@ -666,32 +666,34 @@ stored_y = 0
 t = 0.0
 
 def on_move(event):
-    if event.inaxes:
-        global stored_x, stored_y, t
-        global phi
-        dx = float(event.x - stored_x) / 100.0
-        stored_x = event.x
-        phi += dx
+    if not event.inaxes:
+        return
 
-        view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
-        testpose = torch.tensor(view_matrix).to(device)
-        rays_o, rays_d = get_rays(height, width, focal, testpose)
-        rays_o = rays_o.reshape([-1, 3])
-        rays_d = rays_d.reshape([-1, 3])
-        outputs = nerf_forward(rays_o, rays_d,
-                               near, far, encode, model,
-                               kwargs_sample_stratified=kwargs_sample_stratified,
-                               n_samples_hierarchical=n_samples_hierarchical,
-                               kwargs_sample_hierarchical=kwargs_sample_hierarchical,
-                               fine_model=fine_model,
-                               viewdirs_encoding_fn=encode_viewdirs,
-                               chunksize=chunksize)
-        
-        rgb_predicted = outputs['rgb_map']
-        image = rgb_predicted.reshape([height, width, 3]).detach().cpu().numpy()
+    global stored_x, stored_y, t
+    global phi
+    dx = float(event.x - stored_x) / 100.0
+    stored_x = event.x
+    phi += dx
 
-        im.set_data(image)
-        fig.canvas.draw_idle()
+    view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
+    testpose = torch.tensor(view_matrix).to(device)
+    rays_o, rays_d = get_rays(height, width, focal, testpose)
+    rays_o = rays_o.reshape([-1, 3])
+    rays_d = rays_d.reshape([-1, 3])
+    outputs = nerf_forward(rays_o, rays_d,
+                           near, far, encode, model,
+                           kwargs_sample_stratified=kwargs_sample_stratified,
+                           n_samples_hierarchical=n_samples_hierarchical,
+                           kwargs_sample_hierarchical=kwargs_sample_hierarchical,
+                           fine_model=fine_model,
+                           viewdirs_encoding_fn=encode_viewdirs,
+                           chunksize=chunksize)
+
+    rgb_predicted = outputs['rgb_map']
+    image = rgb_predicted.reshape([height, width, 3]).detach().cpu().numpy()
+
+    im.set_data(image)
+    fig.canvas.draw_idle()
 
 fig.canvas.mpl_connect('motion_notify_event', on_move)
 
