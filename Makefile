@@ -1,9 +1,9 @@
 all: view
 mojo:
 	mojo nerf.mojo
-python:
-	python nerf.py
 view:
 	python view.py
+train:
+	python train.py
 edit:
-	vi -O nerf.mojo nerf.py
+	vi view.py
