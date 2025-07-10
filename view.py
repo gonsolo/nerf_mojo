@@ -1,3 +1,4 @@
+import cProfile
 import math
 import sys
 import torch
@@ -136,7 +137,13 @@ fine_model.to(device)
 
 model.eval()
 
+profiler = cProfile.Profile()
+profiler.enable()
 image = compute_image(radius, theta, phi)
+profiler.disable()
+profiler.print_stats(sort='cumtime')
+sys.exit()
+
 fig, ax = plt.subplots()
 im = plt.imshow(image)
 
