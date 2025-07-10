@@ -150,33 +150,34 @@ im = plt.imshow(image)
 
 needs_update = False
 last_draw_time = None
+mouse_resolution = 100.0
 
 def on_move(event):
     if not event.inaxes:
         return
     global stored_x, stored_y, t
-    global phi, needs_update
+    global phi, theta, needs_update
 
-    dx = float(event.x - stored_x) / 100.0
+    dx = float(event.x - stored_x) / mouse_resolution
+    dy = float(event.y - stored_y) / mouse_resolution
     stored_x = event.x
+    stored_y = event.y
     phi -= dx
-    #print("compute image")
-    #image = compute_image(radius, theta, phi)
-    #im.set_data(image)
+    theta -= dy
     needs_update = True
     fig.canvas.draw_idle()
 
 def on_draw(event):
     global needs_update, last_draw_time
+
     now = time.time()
     if last_draw_time is not None:
         dt = now - last_draw_time
         fps = 1.0 / dt if dt > 0 else float('inf')
-        print(f"FPS: {fps:.1f}")
+        #print(f"FPS: {fps:.1f}")
     last_draw_time = now
 
     if needs_update:
-        print("compute image")
         image = compute_image(radius, theta, phi)
         im.set_data(image)
         needs_update = False
