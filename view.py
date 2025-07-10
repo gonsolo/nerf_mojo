@@ -4,16 +4,14 @@ import sys
 import time
 import torch
 import matplotlib.pyplot as plt
-import numpy as np
 import max.mojo.importer
+import mojo_module
+import numpy as np
+
 from torch import nn
 from typing import Callable, List, Optional
 from matplotlib.backend_bases import MouseButton
 from nerf import *
-
-sys.path.insert(0, "")
-import mojo_module
-print(mojo_module.factorial(5))
 
 device = torch.device('cuda')
 d_input = 3
@@ -87,6 +85,7 @@ def spherical_camera_matrix_nerf_style(radius, theta, phi):
     return m.T
 
 def compute_image(radiu, theta, phi):
+    _ = mojo_module.factorial(5)
     view_matrix = spherical_camera_matrix_nerf_style(radius, theta, phi)
     testpose = torch.tensor(view_matrix).to(device)
     rays_o, rays_d = get_rays(height, width, focal, testpose)
