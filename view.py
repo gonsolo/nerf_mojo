@@ -1,6 +1,7 @@
 import cProfile
 import math
 import sys
+import time
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
@@ -137,30 +138,51 @@ fine_model.to(device)
 
 model.eval()
 
-profiler = cProfile.Profile()
-profiler.enable()
+#profiler = cProfile.Profile()
+#profiler.enable()
 image = compute_image(radius, theta, phi)
-profiler.disable()
-profiler.print_stats(sort='cumtime')
-sys.exit()
+#profiler.disable()
+#profiler.print_stats(sort='cumtime')
+#sys.exit()
 
 fig, ax = plt.subplots()
 im = plt.imshow(image)
 
+needs_update = False
+last_draw_time = None
+
 def on_move(event):
     if not event.inaxes:
         return
-
     global stored_x, stored_y, t
-    global phi
+    global phi, needs_update
+
     dx = float(event.x - stored_x) / 100.0
     stored_x = event.x
     phi -= dx
-    image = compute_image(radius, theta, phi)
-    im.set_data(image)
+    #print("compute image")
+    #image = compute_image(radius, theta, phi)
+    #im.set_data(image)
+    needs_update = True
     fig.canvas.draw_idle()
 
+def on_draw(event):
+    global needs_update, last_draw_time
+    now = time.time()
+    if last_draw_time is not None:
+        dt = now - last_draw_time
+        fps = 1.0 / dt if dt > 0 else float('inf')
+        print(f"FPS: {fps:.1f}")
+    last_draw_time = now
+
+    if needs_update:
+        print("compute image")
+        image = compute_image(radius, theta, phi)
+        im.set_data(image)
+        needs_update = False
+
 fig.canvas.mpl_connect('motion_notify_event', on_move)
+fig.canvas.mpl_connect('draw_event', on_draw)
 
 plt.show()
 
