@@ -1,6 +1,39 @@
+import max.mojo.importer
+#import mojo_module
+import numpy as np
+import sys
 import torch
+from PIL import Image
+from max.torch import CustomOpLibrary
+from pathlib import Path
 from torch import nn
 from typing import Callable, List, Optional
+
+# Load the Mojo custom operations from the `operations` directory.
+mojo_kernels = Path(__file__).parent / "operations"
+ops = CustomOpLibrary(mojo_kernels)
+
+#def create_test_image():
+#      # Create a synthetic RGB test image (64x64 pixels)
+#      # Create a simple gradient pattern
+#      test_array = np.zeros((64, 64, 3), dtype=np.uint8)
+#      for i in range(64):
+#          for j in range(64):
+#              test_array[i, j] = [i * 4, j * 4, (i + j) * 2]
+#  
+#      return Image.fromarray(test_array, mode="RGB")
+  
+#@torch.compile
+#def grayscale(pic):
+#    output = pic.new_empty(pic.shape[:-1])  # Remove color channel dimension
+#    ops.grayscale(output, pic)  # Call our custom Mojo operation
+#    return output
+
+@torch.compile
+def mojo_nerf_forward(batch):
+    output = batch.new_empty(batch.shape)
+    ops.nerf_forward(output, batch)
+    return output
 
 class NeRF(nn.Module):
   r"""
@@ -46,6 +79,9 @@ class NeRF(nn.Module):
     r"""
     Forward pass with optional view direction.
     """
+
+    #print(self.d_viewdirs)
+    #sys.exit()
 
     # Cannot use viewdirs if instantiated with d_viewdirs = None
     if self.d_viewdirs is None and viewdirs is not None:
@@ -405,9 +441,22 @@ def nerf_forward(
   # Split the encoded points into "chunks", run the model on all chunks, and
   # concatenate the results (to avoid out-of-memory issues).
   predictions = []
+
   for batch, batch_viewdirs in zip(batches, batches_viewdirs):
- 
-    predictions.append(coarse_model(batch, viewdirs=batch_viewdirs))
+    prediction = coarse_model(batch, viewdirs=batch_viewdirs)
+    predictions.append(prediction)
+    mojo_prediction = mojo_nerf_forward(batch)
+
+    #image = create_test_image()
+    #image_array = np.array(image)
+    #image_tensor = torch.from_numpy(image_array)
+    #gray_image_tensor = grayscale(image_tensor)
+    #gray_array = gray_image_tensor.numpy()
+    #result_image = Image.fromarray(gray_array, mode="L")
+    #result_image.save("grayscale_output.png")
+    #print("grayscale ok")
+    #sys.exit()
+
   raw = torch.cat(predictions, dim=0)
   raw = raw.reshape(list(query_points.shape[:2]) + [raw.shape[-1]])
 
