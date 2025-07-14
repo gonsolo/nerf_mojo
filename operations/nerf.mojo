@@ -7,6 +7,8 @@ from tensor_internal import (
 )
 from utils.index import IndexList
 
+var d_viewdirs: Optional[Int] = None
+
 @compiler.register("nerf_forward")
 struct Nerf:
 
@@ -16,9 +18,14 @@ struct Nerf:
     ](
         batch_out: OutputTensor[dtype = DType.float32, rank=2],
         batch_in: InputTensor[dtype = DType.float32, rank=2],
+        viewdirs: InputTensor[dtype = DType.float32, rank=2],
         ctx: DeviceContextPtr,
     ) raises:
+        #if d_viewdirs is None and viewdirs is not None:
+        #    raise ValueError('Cannot input x_direction if d_viewdirs was not given.')
+
         # TODO
+
         return
 
 #@compiler.register("grayscale")

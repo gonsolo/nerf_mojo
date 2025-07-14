@@ -30,9 +30,9 @@ ops = CustomOpLibrary(mojo_kernels)
 #    return output
 
 @torch.compile
-def mojo_nerf_forward(batch):
+def mojo_nerf_forward(batch, viewdirs):
     output = batch.new_empty(batch.shape)
-    ops.nerf_forward(output, batch)
+    ops.nerf_forward(output, batch, viewdirs)
     return output
 
 class NeRF(nn.Module):
@@ -79,9 +79,6 @@ class NeRF(nn.Module):
     r"""
     Forward pass with optional view direction.
     """
-
-    #print(self.d_viewdirs)
-    #sys.exit()
 
     # Cannot use viewdirs if instantiated with d_viewdirs = None
     if self.d_viewdirs is None and viewdirs is not None:
@@ -445,7 +442,7 @@ def nerf_forward(
   for batch, batch_viewdirs in zip(batches, batches_viewdirs):
     prediction = coarse_model(batch, viewdirs=batch_viewdirs)
     predictions.append(prediction)
-    mojo_prediction = mojo_nerf_forward(batch)
+    mojo_prediction = mojo_nerf_forward(batch, batch_viewdirs)
 
     #image = create_test_image()
     #image_array = np.array(image)
