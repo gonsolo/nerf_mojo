@@ -406,6 +406,7 @@ def nerf_forward(
   # concatenate the results (to avoid out-of-memory issues).
   predictions = []
   for batch, batch_viewdirs in zip(batches, batches_viewdirs):
+ 
     predictions.append(coarse_model(batch, viewdirs=batch_viewdirs))
   raw = torch.cat(predictions, dim=0)
   raw = raw.reshape(list(query_points.shape[:2]) + [raw.shape[-1]])
@@ -458,6 +459,6 @@ def nerf_forward(
   outputs['depth_map'] = depth_map
   outputs['acc_map'] = acc_map
   outputs['weights'] = weights
-  return outputs
 
+  return outputs
 

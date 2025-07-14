@@ -109,13 +109,12 @@ encode = lambda x: encoder(x)
 
 # View direction encoders
 if use_viewdirs:
-  encoder_viewdirs = PositionalEncoder(d_input, n_freqs_views,
-                                      log_space=log_space)
-  encode_viewdirs = lambda x: encoder_viewdirs(x)
-  d_viewdirs = encoder_viewdirs.d_output
+    encoder_viewdirs = PositionalEncoder(d_input, n_freqs_views, log_space=log_space)
+    encode_viewdirs = lambda x: encoder_viewdirs(x)
+    d_viewdirs = encoder_viewdirs.d_output
 else:
-  encode_viewdirs = None
-  d_viewdirs = None
+    encode_viewdirs = None
+    d_viewdirs = None
 
 model = NeRF(encoder.d_output,
              n_layers=n_layers,
@@ -185,5 +184,4 @@ fig.canvas.mpl_connect('motion_notify_event', on_move)
 fig.canvas.mpl_connect('draw_event', on_draw)
 
 plt.show()
-
 
