@@ -5,7 +5,6 @@ from tensor_internal import (
     OutputTensor,
     foreach,
 )
-from utils.index import IndexList
 
 var d_viewdirs: Optional[Int] = None
 
@@ -21,9 +20,9 @@ struct Nerf:
         viewdirs: InputTensor[dtype = DType.float32, rank=2],
         ctx: DeviceContextPtr,
     ) raises:
-        #if d_viewdirs is None and viewdirs is not None:
-        #    raise ValueError('Cannot input x_direction if d_viewdirs was not given.')
 
+        #for i in range(layers.len()):
+        #    layer = layers[i]
         # TODO
 
         return

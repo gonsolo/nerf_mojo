@@ -1,5 +1,5 @@
 import max.mojo.importer
-#import mojo_module
+import mojo_module
 import numpy as np
 import sys
 import torch
@@ -83,6 +83,8 @@ class NeRF(nn.Module):
     # Cannot use viewdirs if instantiated with d_viewdirs = None
     if self.d_viewdirs is None and viewdirs is not None:
       raise ValueError('Cannot input x_direction if d_viewdirs was not given.')
+
+    #n = mojo_module.Nerfinger()
 
     # Apply forward pass up to bottleneck
     x_input = x
