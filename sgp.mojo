@@ -1,5 +1,6 @@
 from pathlib import Path
 from python import Python
+from python import PythonObject
 
 fn read_jpg_images_from_directory(directory_path: String) raises:
     """Read all JPG images from a directory using Python's PIL library."""
@@ -76,33 +77,60 @@ fn read_jpg_images_from_directory(directory_path: String) raises:
         print("✗ Error importing PIL or numpy")
         return
 
+from python import Python
+
 fn use_glfw() raises:
     var glfw = Python.import_module("glfw")
+    #var vk = Python.import_module("vulkan")
 
-    # Initialize GLFW
+    # Initialize GLFW with Vulkan hints
+    #glfw.window_hint(glfw.CLIENT_API, glfw.NO_API)  # Required for Vulkan
+    #glfw.window_hint(glfw.RESIZABLE, False)  # Simplifies Vulkan setup
+
     if not glfw.init():
-        raise Error("Failed to initialize GLFW")
+        raise Error("GLFW initialization failed")
 
-    # Configure window hints
     glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 
-    # Create a window
-    var window = glfw.create_window(640, 480, "Mojo + GLFW", None, None)
+    # Create window
+    var window = glfw.create_window(800, 600, "Vulkan + Wayland (Ctrl+Q to quit)", None, None)
     if not window:
         glfw.terminate()
-        raise Error("Failed to create GLFW window")
+        raise Error("Window creation failed")
 
-    # Make the window's context current
     glfw.make_context_current(window)
+
+    # Basic Vulkan setup
+    #var instance_info = vk.VkInstanceCreateInfo(
+    #    sType=vk.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    #    pApplicationInfo=vk.VkApplicationInfo(
+    #        sType=vk.VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    #        pApplicationName="Vulkan Mojo",
+    #        applicationVersion=vk.VK_MAKE_VERSION(1, 0, 0),
+    #        pEngineName="No Engine",
+    #        engineVersion=vk.VK_MAKE_VERSION(1, 0, 0),
+    #        apiVersion=vk.VK_API_VERSION_1_0
+    #    )
+    #)
+
+    #var instance = vk.VkInstance(0)
+    #if vk.vkCreateInstance(instance_info, None, instance) != vk.VK_SUCCESS:
+    #    glfw.terminate()
+    #    raise Error("Vulkan instance creation failed")
 
     # Main loop
     while not glfw.window_should_close(window):
-        # Render here
-        glfw.swap_buffers(window)
+        # Check for Ctrl+Q
+        #if (glfw.get_key(window, glfw.KEY_LEFT_CONTROL) == glfw.PRESS and
+        #   glfw.get_key(window, glfw.KEY_Q) == glfw.PRESS):
+        #    glfw.set_window_should_close(window, True)
         glfw.poll_events()
+        glfw.swap_buffers(window)
 
+    # Cleanup
+    #vk.vkDestroyInstance(instance, None)
     glfw.terminate()
 
 fn main():
@@ -126,5 +154,5 @@ fn main():
 
     try:
         use_glfw()
-    except:
-        print("\n=== Error using glfw ===")
+    except e:
+        print("\n=== Error using glfw: ", e)
