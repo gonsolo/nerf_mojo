@@ -1,6 +1,8 @@
 from pathlib import Path
 from python import Python
 from python import PythonObject
+from layout import Layout, LayoutTensor
+from memory import memcpy, UnsafePointer
 
 fn read_jpg_images_from_directory(directory_path: String) raises:
     """Read all JPG images from a directory using Python's PIL library."""
@@ -58,9 +60,42 @@ fn read_jpg_images_from_directory(directory_path: String) raises:
                     
                     print("  Converting to numpy array...")
                     var img_array = np.array(img)
+                    print("  Converting to tensor...")
                     var shape = img_array.shape
                     print("  Array shape:", shape)
                     
+                    print("  Converting to tensor...")
+                    alias dtype = DType.uint8
+                    #alias cheight = 1920
+                    #alias cwidth = 1080
+                    #alias channels = 3
+                    #alias elements_in = cwidth * cheight * channels
+                    #alias layout = Layout.row_major(cheight, cwidth, channels)
+                    #var img_storage = InlineArray[Scalar[dtype], elements_in](uninitialized=True)
+                    ##var img_array_flat = img_array.flatten()
+
+                    #var img_array_flat = img_array.flatten().astype(np.uint8)
+
+                    #for i in range(elements_in):
+                    #    var temp_val = Float64(img_array_flat[i])
+                    #    img_storage[i] = UInt8(temp_val)
+
+                    #for i in range(img_array_flat.shape[0]):
+                    #    var temp_val = Float64(img_array_flat[i])
+                    #    img_storage[i] = UInt8(temp_val)
+                    # Get pointer to InlineArray data
+
+                    #var storage_ptr = UnsafePointer.address_of(img_storage[0])
+                    #var storage_ptr = UnsafePointer(to=img_storage[0])
+                    #var numpy_ptr = UnsafePointer(to=img_array_flat[0])
+
+                    #memcpy(storage_ptr, numpy_ptr, elements_in)
+
+                    #memcpy(img_storage.data(), img_array_flat.data.cast[DType.uint8](), elements_in)
+
+                    #var img_tensor = LayoutTensor[dtype, layout](img_storage)
+                    #_ = img_tensor
+
                     print("  Closing image...")
                     img.close()
                     print("  ✓ Successfully processed:", filename_str)
@@ -152,7 +187,7 @@ fn main():
         except:
             print("Could not get current directory")
 
-    try:
-        use_glfw()
-    except e:
-        print("\n=== Error using glfw: ", e)
+    #try:
+    #    use_glfw()
+    #except e:
+    #    print("\n=== Error using glfw: ", e)
