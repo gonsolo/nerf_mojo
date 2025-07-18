@@ -76,6 +76,35 @@ fn read_jpg_images_from_directory(directory_path: String) raises:
         print("✗ Error importing PIL or numpy")
         return
 
+fn use_glfw() raises:
+    var glfw = Python.import_module("glfw")
+
+    # Initialize GLFW
+    if not glfw.init():
+        raise Error("Failed to initialize GLFW")
+
+    # Configure window hints
+    glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+    glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+    glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+
+    # Create a window
+    var window = glfw.create_window(640, 480, "Mojo + GLFW", None, None)
+    if not window:
+        glfw.terminate()
+        raise Error("Failed to create GLFW window")
+
+    # Make the window's context current
+    glfw.make_context_current(window)
+
+    # Main loop
+    while not glfw.window_should_close(window):
+        # Render here
+        glfw.swap_buffers(window)
+        glfw.poll_events()
+
+    glfw.terminate()
+
 fn main():
     """Main function to demonstrate reading JPG images."""
     
@@ -94,3 +123,8 @@ fn main():
             print("Current working directory:", cwd)
         except:
             print("Could not get current directory")
+
+    try:
+        use_glfw()
+    except:
+        print("\n=== Error using glfw ===")
