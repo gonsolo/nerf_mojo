@@ -1,9 +1,4 @@
-all: view
-mojo:
-	mojo nerf.mojo
-view:
-	python view.py
-train:
-	python train.py
+all:
+	mojo sgp.mojo
 edit:
-	vi view.py
+	vi sgp.mojo
